@@ -1,0 +1,22 @@
+# Node / Python / general junk
+node_modules/
+__pycache__/
+*.py[cod]
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+
+# Settings files
+settings.*
+setting.*
+
+# Build / dist
+dist/
+build/
+*.egg-info/
