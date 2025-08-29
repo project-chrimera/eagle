@@ -193,7 +193,7 @@ async def timeout(identifier, duration):
         return api_error(404, 'Timeout role not found')
 
     # Save previous roles except excluded ones
-    excluded = {"@everyone", "newmember", "timeout", "banned"}
+    excluded = {"@everyone", "timeout", "banned"}
     previous_roles = [r for r in user.roles if r.name not in excluded]
 
     # Remove newmember + member, assign timeout
