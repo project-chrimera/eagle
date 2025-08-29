@@ -7,12 +7,14 @@ from discord.utils import get
 from quart import Quart, jsonify
 import asyncio
 import json
-from quart import request
+from functools import wraps
+from quart import request, jsonify
 
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = int(os.getenv('DISCORD_GUILD'))
+API_TOKEN = os.getenv('API_TOKEN')
 
 # Initialize Discord bot
 intents = discord.Intents.default()
@@ -23,6 +25,21 @@ my_guild = None  # Will store the reference to the guild
 
 # Initialize Quart app
 app = Quart(__name__)
+
+def token_required(f):
+    """
+    Decorator to check for a valid API token in the request header.
+    """
+    @wraps(f)
+    async def decorated_function(*args, **kwargs):
+        # Look for the 'X-API-Key' header in the request
+        # You could also use 'Authorization' with 'Bearer your_token'
+        api_key = request.headers.get('X-API-Key')
+        if not api_key or api_key != API_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+        return await f(*args, **kwargs)
+    return decorated_function
+
 
 # Event triggered when the bot is ready
 @bot.event
@@ -50,6 +67,7 @@ async def hello():
     return "Hello, world!"
 
 @app.route('/api/kick/<int:user_id>', methods=['POST'])
+@token_required
 async def kick_member(user_id):
     """Kick a member by user_id."""
     if not my_guild:
@@ -61,6 +79,7 @@ async def kick_member(user_id):
     return api_error(404, 'User not found')
 
 @app.route('/api/get_roles/<int:user_id>', methods=['GET'])
+@token_required
 async def get_roles(user_id):
     """Get roles of a member by user_id."""
     if not my_guild:
@@ -72,6 +91,7 @@ async def get_roles(user_id):
     return api_error(404, 'User not found')
 
 @app.route('/api/del_roles/<int:user_id>/<string:role_str>', methods=['POST'])
+@token_required
 async def remove_roles(user_id, role_str):
     """Remove a role from a member."""
     if not my_guild:
@@ -86,6 +106,7 @@ async def remove_roles(user_id, role_str):
     return api_error(404, 'User not found')
 
 @app.route('/api/add_roles/<int:user_id>/<string:role_str>', methods=['POST'])
+@token_required
 async def add_roles(user_id, role_str):
     """Add a role to a member."""
     if not my_guild:
@@ -100,6 +121,7 @@ async def add_roles(user_id, role_str):
     return api_error(404, 'User not found')
 
 @app.route('/api/post_message', methods=['POST'])
+@token_required
 async def post_message():
     """
     Post a message to the #project-hq channel in the guild.
@@ -146,6 +168,7 @@ def get_user(identifier):
     return None
 
 @app.route('/api/soft_ban/<string:identifier>', methods=['POST'])
+@token_required
 async def soft_ban(identifier):
     """Soft-ban a user by ID or username."""
     if not my_guild:
@@ -170,6 +193,7 @@ async def soft_ban(identifier):
 
     return jsonify({"status": "success", "message": f"User {user.name} soft-banned"}), 200
 
+@token_required
 @app.route('/api/timeout/<string:identifier>/<int:duration>', methods=['POST'])
 async def timeout(identifier, duration):
     """Timeout a user by ID or username."""
